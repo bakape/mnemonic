@@ -47,8 +47,17 @@ var (
 // representation. IP must be a valid IPv4 or IPv6 and salt is recommended to be
 // at least 40 chars long.
 func Mnemonic(ip, salt string) string {
+	// Avoids concatenating strings
+	buf := make([]byte, len(ip)+len(salt))
+	copy(buf, ip)
+	copy(buf[len(ip):], salt)
+	return FromBuffer(buf)
+}
+
+// Sames as Mnemonic, but hashes an arbitrary []byte
+func FromBuffer(buf []byte) string {
 	var (
-		sum    = sha1.Sum([]byte(ip + salt))
+		sum    = sha1.Sum(buf)
 		result = make([]byte, 0, 8)
 	)
 	for i := 0; i < 4; i++ {
