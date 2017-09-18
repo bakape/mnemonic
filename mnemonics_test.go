@@ -8,13 +8,15 @@ import (
 
 const salt = "r088PUX0qpUjhUyZby6e4pQcDh3zzUQUpeLOy7Hb"
 
+var cases = readCases("mnemonics_out")
+
 type inputCase struct {
 	expected string
 	input    string
 }
 
 func TestMnemonic(T *testing.T) {
-	for _, test := range readCases("mnemonics_out") {
+	for _, test := range cases {
 		res := Mnemonic(test.input, salt)
 		if res != test.expected {
 			T.Fatalf("%v : %s\n", test, res)
@@ -40,4 +42,11 @@ func readCases(fileName string) (cases []inputCase) {
 		})
 	}
 	return
+}
+
+func TestFantasyNames(t *testing.T) {
+	for _, test := range cases {
+		res := FantasyName([]byte(test.input + salt))
+		t.Logf("%s\t-> %s\n", test.input, res)
+	}
 }

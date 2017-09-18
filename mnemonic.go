@@ -27,6 +27,7 @@ package mnemonic
 import (
 	"crypto/sha1"
 	"encoding/binary"
+	"unicode"
 )
 
 var (
@@ -40,6 +41,19 @@ var (
 	mnemonicEnds = [16]string{
 		"a", "i", "u", "e", "o", "a", "i", "u", "e", "o", "ya", "yi", "yu",
 		"ye", "yo", "'",
+	}
+
+	syllableStarts = [16]string{
+		"", "k", "s", "t", "d", "n", "h", "b", "sh", "m", "f", "r", "g", "z",
+		"l", "ch",
+	}
+	syllableMiddles = [16]string{
+		"a", "i", "u", "e", "o", "au", "ei", "ai",
+		"a", "i", "u", "e", "o", "au", "ei", "ai",
+	}
+	syllableEnds = [16]string{
+		"l", "r", "s", "t", "", "g", "k", "f",
+		"l", "r", "s", "t", "", "g", "k", "f",
 	}
 )
 
@@ -58,7 +72,7 @@ func Mnemonic(ip, salt string) string {
 func FromBuffer(buf []byte) string {
 	var (
 		sum    = sha1.Sum(buf)
-		result = make([]byte, 0, 8)
+		result = make([]byte, 0, 32)
 	)
 	for i := 0; i < 4; i++ {
 		// This takes 4 bytes instead of 5. It looks that way in the C++!
@@ -67,5 +81,39 @@ func FromBuffer(buf []byte) string {
 		result = append(result, mnemonicStarts[(j%256)/16]...)
 		result = append(result, mnemonicEnds[j%16]...)
 	}
+	return string(result)
+}
+
+// Like FromBuffer(), but generates a somewhat more readable fantasy-ish name
+func FantasyName(buf []byte) string {
+	// Convert 20 byte sum to 9
+	sum := sha1.Sum(buf)
+	var short [9]byte
+	for i := 0; i < 18; i++ {
+		short[i%9] += sum[i]
+	}
+
+	result := make([]byte, 0, 32)
+	var last byte
+	for i := 0; i < 3; i++ {
+		for j, arr := range [...][16]string{
+			syllableStarts, syllableMiddles, syllableEnds,
+		} {
+			s := arr[short[(i*3+j)]%16]
+
+			// Prevent repeating sequential letters for better readability
+			if len(s) != 0 {
+				if s[0] == last {
+					result = result[:len(result)-1]
+				}
+				last = s[len(s)-1]
+			}
+			result = append(result, s...)
+		}
+	}
+
+	// Capitalize
+	result[0] = byte(unicode.ToUpper(rune(result[0])))
+
 	return string(result)
 }
